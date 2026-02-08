@@ -1233,6 +1233,35 @@ a.create-task-row {
   position: relative;
 }
 
+.attribution-input-form.input-setting-form-row {
+  flex-wrap: wrap;
+}
+
+.attribution-system-input-row {
+  display: flex;
+  gap: 12px;
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.attribution-system-input-row .attribution-system-cell,
+.attribution-system-input-row .attribution-input-cell {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.attribution-system-input-row .attribution-dual-height {
+  min-height: 160px;
+  resize: vertical;
+}
+
+.attribution-system-input-row .input-string-trigger {
+  min-height: 160px;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
 .input-string-trigger {
   padding: 8px 10px;
   font-size: 13px;
@@ -1571,6 +1600,21 @@ a.create-task-row {
   line-height: 1.6;
   word-break: break-all;
   overflow-wrap: break-word;
+}
+
+.attribution-tokens-drop-special-wrap {
+  margin-bottom: 16px;
+}
+
+.attribution-tokens-drop-special-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.attribution-tokens-drop-special-wrap .attribution-tokens-wrap {
+  margin-bottom: 0;
 }
 
 .attribution-token {

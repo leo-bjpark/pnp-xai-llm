@@ -12,15 +12,29 @@
     return div.innerHTML;
   }
 
+  /** 토큰 표시용 후처리: Ġ(U+0120, 스페이스 심볼) → 공백으로 보여줌 */
+  function tokenDisplayText(raw) {
+    return String(raw).replace(/\u0120/g, " ");
+  }
+
   function renderAttributionResultHTML(res, escapeHtml) {
     escapeHtml = escapeHtml || defaultEscapeHtml;
     const tokens = res.input_tokens || [];
     const scores = res.token_scores || [];
+    const scoresDropSpecial = res.token_scores_drop_special || scores;
     const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const tokenSpans = tokens
       .map((t, i) => {
         const score = scores[i] != null ? Number(scores[i]) : 0;
-        return `<span class="attribution-token" data-score="${score}" title="score: ${score}">${esc(t)}</span>`;
+        const display = tokenDisplayText(t);
+        return `<span class="attribution-token" data-score="${score}" title="score: ${score}">${esc(display)}</span>`;
+      })
+      .join("");
+    const tokenSpansDropSpecial = tokens
+      .map((t, i) => {
+        const score = scoresDropSpecial[i] != null ? Number(scoresDropSpecial[i]) : 0;
+        const display = tokenDisplayText(t);
+        return `<span class="attribution-token" data-score="${score}" title="score: ${score}">${esc(display)}</span>`;
       })
       .join("");
     return `
@@ -54,6 +68,10 @@
         </div>
       </div>
       <div class="attribution-tokens-wrap" id="attribution-tokens-wrap">${tokenSpans}</div>
+      <div class="attribution-tokens-drop-special-wrap">
+        <div class="attribution-tokens-drop-special-label">Special tokens dropped</div>
+        <div class="attribution-tokens-wrap" id="attribution-tokens-wrap-drop-special">${tokenSpansDropSpecial}</div>
+      </div>
       <h3>Generated</h3>
       <pre class="results-completion-text">${escapeHtml(String(res.generated_text ?? ""))}</pre>
       <details class="results-completion-meta">
@@ -65,4 +83,5 @@
   }
 
   window.PNP_renderAttributionResultHTML = renderAttributionResultHTML;
+  window.PNP_tokenDisplayText = tokenDisplayText;
 })();

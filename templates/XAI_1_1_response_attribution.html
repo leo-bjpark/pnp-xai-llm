@@ -29,8 +29,8 @@
 
       <div class="input-setting-panel" id="input-setting-panel">
         <div class="input-setting-body" id="input-setting-body">
-          <p class="input-setting-hint">Response Attribution: set generation parameters and input prompt. RUN generates then highlights input tokens that contributed to the output (attribution method: input_grad).</p>
-          <div class="input-setting-form input-setting-form-row">
+          <p class="input-setting-hint">Response Attribution: Chat Template (system + user). Set System Instruction and Input String; attribution is over all input tokens before generation. RUN then highlights contributing tokens (input_grad).</p>
+          <div class="input-setting-form input-setting-form-row attribution-input-form">
             <div class="input-setting-cell">
               <label for="input-completion-temperature">Temperature</label>
               <input type="number" id="input-completion-temperature" name="temperature" data-task-input="temperature" class="input-setting-field" min="0" max="2" step="0.1" value="{{ (task.result or {}).get('temperature', 0.7) }}" />
@@ -54,14 +54,20 @@
                 <option value="input_grad" {{ 'selected' if (task.result or {}).get('attribution_method', 'input_grad') == 'input_grad' else '' }}>input_grad</option>
               </select>
             </div>
-            <div class="input-setting-cell input-string-cell">
-              <label for="input-completion-string">Input String</label>
-              <div class="input-string-trigger" id="input-string-trigger" role="button" tabindex="0" title="Click for multi-line editor">Enter prompt...</div>
-              <textarea id="input-completion-string" name="input_string" data-task-input="input_string" class="input-setting-field input-string-textarea" rows="8" placeholder="Enter prompt for completion..." style="display:none;">{{ (task.result or {}).get('input_string', '') }}</textarea>
-              <div class="input-string-backdrop" id="input-string-backdrop"></div>
-              <div class="input-string-popover" id="input-string-popover">
-                <textarea id="input-string-popover-textarea" class="input-string-popover-textarea" rows="10" placeholder="Enter prompt for completion..."></textarea>
-                <button type="button" class="input-string-popover-close" id="input-string-popover-close">Done</button>
+            <div class="attribution-system-input-row">
+              <div class="input-setting-cell attribution-system-cell">
+                <label for="input-attribution-system-instruction">System Instruction</label>
+                <textarea id="input-attribution-system-instruction" name="system_instruction" data-task-input="system_instruction" class="input-setting-field input-setting-textarea attribution-dual-height" rows="8" placeholder="You are a helpful assistant.">{{ (task.result or {}).get('system_instruction', 'You are a helpful assistant.') }}</textarea>
+              </div>
+              <div class="input-setting-cell input-string-cell attribution-input-cell">
+                <label for="input-completion-string">Input String</label>
+                <div class="input-string-trigger" id="input-string-trigger" role="button" tabindex="0" title="Click for multi-line editor">Enter prompt...</div>
+                <textarea id="input-completion-string" name="input_string" data-task-input="input_string" class="input-setting-field input-string-textarea attribution-dual-height" rows="8" placeholder="Enter prompt for completion..." style="display:none;">{{ (task.result or {}).get('input_string', '') }}</textarea>
+                <div class="input-string-backdrop" id="input-string-backdrop"></div>
+                <div class="input-string-popover" id="input-string-popover">
+                  <textarea id="input-string-popover-textarea" class="input-string-popover-textarea" rows="10" placeholder="Enter prompt for completion..."></textarea>
+                  <button type="button" class="input-string-popover-close" id="input-string-popover-close">Done</button>
+                </div>
               </div>
             </div>
           </div>
@@ -108,6 +114,17 @@
               {% set _score = _scores[_idx] if _idx < _scores|length else 0 %}
               <span class="attribution-token" data-score="{{ _score }}" title="score: {{ _score }}">{{ token }}</span>
               {% endfor %}
+            </div>
+            <div class="attribution-tokens-drop-special-wrap">
+              <div class="attribution-tokens-drop-special-label">Special tokens dropped</div>
+              <div class="attribution-tokens-wrap" id="attribution-tokens-wrap-drop-special">
+                {% set _scores_drop = (task.result or {}).get('token_scores_drop_special') or _scores %}
+                {% for token in _tokens %}
+                {% set _idx = loop.index0 %}
+                {% set _sd = _scores_drop[_idx] if _idx < _scores_drop|length else 0 %}
+                <span class="attribution-token" data-score="{{ _sd }}" title="score: {{ _sd }}">{{ token }}</span>
+                {% endfor %}
+              </div>
             </div>
             <h3>Generated</h3>
             <pre class="results-completion-text">{{ task.result.generated_text }}</pre>

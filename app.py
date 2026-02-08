@@ -396,6 +396,7 @@ def api_run():
 
     # Completion (0.1.1) or Response Attribution (1.0.1): input_string + generation params
     input_string = (input_setting.get("input_string") or "").strip()
+    system_instruction = (input_setting.get("system_instruction") or "").strip()
     attribution_method = (input_setting.get("attribution_method") or "").strip()
     if "input_string" in input_setting and current_model:
         try:
@@ -411,6 +412,7 @@ def api_run():
                 result = compute_input_attribution(
                     model_key=current_model,
                     input_string=input_string,
+                    system_instruction=system_instruction,
                     temperature=temperature,
                     max_new_tokens=max_new_tokens,
                     top_p=top_p,

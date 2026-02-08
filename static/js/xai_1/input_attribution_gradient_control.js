@@ -8,7 +8,8 @@
   function drawAttributionKDE(wrap) {
     const chartEl = wrap.querySelector(".attribution-kde-chart");
     const pathEl = chartEl?.querySelector(".kde-path");
-    const tokens = wrap.querySelectorAll(".attribution-token");
+    const firstTokensWrap = wrap.querySelector(".attribution-tokens-wrap");
+    const tokens = firstTokensWrap ? firstTokensWrap.querySelectorAll(".attribution-token") : [];
     if (!chartEl || !pathEl) return;
     const scores = Array.from(tokens).map((t) => parseFloat(t.dataset.score) || 0).filter((s) => Number.isFinite(s));
     const n = scores.length;
@@ -98,6 +99,11 @@
   function initAttributionGradientControls(root) {
     const wrap = (root || document).querySelector(".results-attribution-wrap");
     if (!wrap) return;
+    if (window.PNP_tokenDisplayText) {
+      wrap.querySelectorAll(".attribution-token").forEach((el) => {
+        el.textContent = window.PNP_tokenDisplayText(el.textContent);
+      });
+    }
     const sliderWrap = wrap.querySelector(".attribution-range-slider-wrap");
     const minIn = wrap.querySelector(".attribution-range-min");
     const maxIn = wrap.querySelector(".attribution-range-max");
