@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ pipeline.name }} - Data Pipeline - PnP-XAI-LLM</title>
+  <script>document.documentElement.dataset.theme=localStorage.getItem('pnp-xai-theme')||'light';</script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ide.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/data_pipeline.css') }}" />
+</head>
+<body data-pipeline-id="{{ pipeline.id }}">
+  {% set export_as_link = true %}
+  {% include 'header.html' with context %}
+
+  <div class="main-layout">
+    {% set is_index = false %}
+    {% include 'sidebar.html' with context %}
+
+    <main class="content-area data-pipeline-content">
+      <div class="content-toolbar content-toolbar-data-pipeline">
+        <span class="data-pipeline-title">{{ pipeline.name }}</span>
+        <span class="data-pipeline-status" id="pipeline-status">{{ pipeline.status }}</span>
+      </div>
+
+      <div class="data-pipeline-panel data-pipeline-split-layout">
+        <!-- Top row: two titles side by side -->
+        <div class="data-pipeline-top-row">
+          <h3 class="data-pipeline-section-title data-pipeline-title-left">Hugging Face Dataset</h3>
+          <h3 class="data-pipeline-section-title data-pipeline-title-right">Processing Function</h3>
+        </div>
+
+        <!-- Left region: Hugging Face form + Raw Data -->
+        <div class="data-pipeline-region data-pipeline-region-left">
+          <div class="data-pipeline-section-inner">
+            <p class="data-pipeline-hint">Load a dataset. Config name and split optional (e.g. <code>train</code>, <code>test</code>).</p>
+            <div class="data-pipeline-form-row">
+              <label for="hf-dataset-path">Dataset path</label>
+              <input type="text" id="hf-dataset-path" class="data-pipeline-input" placeholder="e.g. walledai/XSTest" value="{{ pipeline.hf_dataset_path or '' }}" />
+            </div>
+            <div class="data-pipeline-form-row">
+              <label for="hf-config-name">Config name</label>
+              <input type="text" id="hf-config-name" class="data-pipeline-input" placeholder="optional" value="{{ (pipeline.hf_load_options or {}).get('config', '') }}" />
+            </div>
+            <div class="data-pipeline-form-row">
+              <label for="hf-split">Split</label>
+              <input type="text" id="hf-split" class="data-pipeline-input" placeholder="e.g. train, test" value="{{ (pipeline.hf_load_options or {}).get('split', '') }}" />
+            </div>
+            <div class="data-pipeline-form-row">
+              <label for="hf-random-n">Random N</label>
+              <input type="number" id="hf-random-n" class="data-pipeline-input data-pipeline-input-num" placeholder="optional: sample size" min="1" value="{{ (pipeline.hf_load_options or {}).get('random_n') or '' }}" />
+            </div>
+            <div class="data-pipeline-form-row">
+              <label for="hf-seed">Seed</label>
+              <input type="number" id="hf-seed" class="data-pipeline-input data-pipeline-input-num" placeholder="for random selection" value="{{ (pipeline.hf_load_options or {}).get('seed') or '' }}" />
+              <button type="button" class="btn-load-dataset" id="btn-load-dataset">Load</button>
+            </div>
+            <div class="data-pipeline-message" id="load-dataset-message" aria-live="polite"></div>
+          </div>
+          <div class="data-pipeline-preview data-pipeline-raw-block" id="data-preview-left">
+            <p class="data-pipeline-placeholder" id="data-preview-placeholder-left">Load a dataset to see raw data here.</p>
+            <div class="data-raw-content" id="data-raw-content" style="display:none;">
+              <div class="data-batch-sub" id="raw-data-label">Raw Data</div>
+              <div class="data-batch-header data-batch-name" id="raw-data-name-cell"></div>
+              <div class="data-batch-info" id="raw-info-cell"></div>
+              <div class="data-batch-example" id="raw-example-cell"></div>
+              <button type="button" class="btn-show-more btn-show-more-arrow" id="btn-raw-show-more" title="5개 더 보기" aria-label="5개 더 보기"><span class="btn-show-more-icon">↓</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right region: Processing config + Processed Data -->
+        <div class="data-pipeline-region data-pipeline-region-right">
+          <div class="data-pipeline-section-inner">
+            <p class="data-pipeline-hint">Python function for <code>dataset.map(process)</code>. Define <code>def process(example): ... return ...</code></p>
+            <label for="processing-code" class="data-pipeline-label-block">Processing function (Python)</label>
+            <textarea id="processing-code" class="data-pipeline-textarea data-pipeline-code" rows="8" placeholder="def process(example):&#10;    return example">{{ processing_code }}</textarea>
+            <div class="data-pipeline-buttons-row">
+              <button type="button" class="btn-apply-processing" id="btn-apply-processing">Apply Processing</button>
+              <button type="button" class="btn-save-data-var" id="btn-save-data-var">Save To Variable</button>
+              <label for="data-var-additional-naming" class="data-pipeline-additional-label">Additional Naming</label>
+              <input type="text" id="data-var-additional-naming" class="data-pipeline-input data-pipeline-additional-input" placeholder="" value="" />
+            </div>
+            <div class="data-pipeline-message" id="processing-message" aria-live="polite"></div>
+          </div>
+          <div class="data-pipeline-preview data-pipeline-processed-block" id="data-preview-right">
+            <p class="data-pipeline-placeholder" id="data-preview-placeholder">Apply processing to see processed data here.</p>
+            <div class="data-processed-content" id="data-processed-content" style="display:none;">
+              <div class="data-batch-sub" id="processed-data-label">Processed Data</div>
+              <div class="data-batch-info" id="processed-info-cell"></div>
+              <div class="data-batch-example" id="processed-example-cell"></div>
+              <button type="button" class="btn-show-more btn-show-more-arrow" id="btn-processed-show-more" title="5개 더 보기" aria-label="5개 더 보기"><span class="btn-show-more-icon">↓</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script>
+    window.PNP_DATASET_INFO = {{ (pipeline.dataset_info or {}) | tojson }};
+    window.PNP_RAW_DATA_NAME = {{ (pipeline.hf_dataset_path or '') | tojson }};
+    window.PNP_PROCESSING_CODE = {{ (pipeline.processing_code or '') | tojson }};
+    window.PNP_PROCESSED_DATASET_INFO = {{ (pipeline.processed_dataset_info or {}) | tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/data_pipeline.js') }}"></script>
+</body>
+</html>

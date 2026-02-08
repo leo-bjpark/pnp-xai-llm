@@ -120,4 +120,26 @@
     </ul>
     {% if is_index %}</div>{% endif %}
   </div>
+
+  <div class="sidebar-section" {% if is_index %}data-section="data-management"{% endif %}>
+    <div class="sidebar-section-title">
+      {% if is_index %}<span class="sidebar-section-chevron" aria-hidden="true">▼</span>{% endif %}
+      <span>Data Management</span>
+    </div>
+    {% if is_index %}<div class="sidebar-section-body">{% endif %}
+    <div class="sidebar-data-management-header">
+      <span class="sidebar-data-label">Dataset Pipeline</span>
+      <button type="button" class="btn-create-pipeline" id="btn-create-pipeline" title="New pipeline">+ New</button>
+    </div>
+    <ul class="dataset-pipeline-list" id="dataset-pipeline-list">
+      {% for p in (dataset_pipelines or []) %}
+      <li class="dataset-pipeline-item {% if pipeline and p.id == pipeline.id %}active{% endif %}" data-pipeline-id="{{ p.id }}">
+        <a href="/data/{{ p.id }}" class="dataset-pipeline-link">{{ p.name }} --- {{ p.status }}</a>
+      </li>
+      {% else %}
+      <li class="dataset-pipeline-empty">No pipelines yet.</li>
+      {% endfor %}
+    </ul>
+    {% if is_index %}</div>{% endif %}
+  </div>
 </aside>

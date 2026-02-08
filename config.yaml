@@ -34,3 +34,8 @@ XAI_LEVEL_NAMES:
   - "1.0.1": "Response Attribution"
   - "1.0.1": "Positive & Negative Attribution"
   - "2.0.1": "Internal Mechanism Analysis"
+
+
+DATASETS:
+  - jailbreak:
+    - walledai/XSTest

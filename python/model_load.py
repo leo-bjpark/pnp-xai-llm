@@ -169,3 +169,12 @@ def load_model(model_key: str) -> None:
 def get_status(model_key: str) -> Dict[str, Any]:
     """Get model status (layers, heads, etc.)."""
     return get_model_status(model_key)
+
+
+def clear_model_cache() -> None:
+    """Clear model load cache (LRU) and CUDA cache. Use after Empty Cache / reset."""
+    import torch
+    if hasattr(load_llm, "cache_clear"):
+        load_llm.cache_clear()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()

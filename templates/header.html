@@ -2,6 +2,7 @@
 <header class="app-title-bar">
   <h1>PnP-XAI-LLM</h1>
   <div class="app-title-bar-right">
+    <button type="button" class="btn-empty-cache" id="btn-empty-cache" title="Clear loaded model and CUDA cache (reset)">Empty Cache</button>
     <div class="json-wrap">
       <button type="button" class="btn-json" id="btn-json" title="Hover for Export/Import">Json</button>
       <div class="json-dropdown" id="json-dropdown">
@@ -21,6 +22,30 @@
     <div class="app-title-bar-meta">
       <span>Version 0.1</span>
       <span>(c) KAIST-SAIL</span>
+    </div>
+    <div class="data-vars-wrap">
+      <button type="button" class="btn-data-vars" id="btn-data-vars" title="Saved data variables (global state)" aria-label="Data variables">
+        <span class="btn-data-vars-label">Variables</span>
+      </button>
+      <div class="data-vars-dropdown" id="data-vars-dropdown" aria-hidden="true">
+        <div class="data-vars-dropdown-header">Variables · Loaded model &amp; saved data</div>
+        <div class="data-vars-table-wrap">
+          <table class="data-vars-table">
+            <thead>
+              <tr>
+                <th class="data-vars-th-name">Name</th>
+                <th class="data-vars-th-memory">Memory (GPU / RAM)</th>
+                <th class="data-vars-th-action"></th>
+              </tr>
+            </thead>
+            <tbody id="data-vars-tbody">
+              <tr class="data-vars-empty-row" id="data-vars-empty-row">
+                <td colspan="3" id="data-vars-empty">No items.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
     <button type="button" class="btn-right-panel" id="btn-right-panel" title="Toggle right panel" aria-label="Toggle panel">
       <svg class="icon-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>

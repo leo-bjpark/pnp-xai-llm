@@ -399,6 +399,103 @@
     }
   }, 500);
 
+  // ----- Data variables (global saved state): table Name | Memory (GPU/RAM) | Delete -----
+  const btnDataVars = document.getElementById("btn-data-vars");
+  const dataVarsDropdown = document.getElementById("data-vars-dropdown");
+  const dataVarsTbody = document.getElementById("data-vars-tbody");
+  const dataVarsEmptyRow = document.getElementById("data-vars-empty-row");
+
+  function formatMemory(gpuGb, ramGb) {
+    const g = gpuGb != null ? "GPU: " + gpuGb + " GB" : "";
+    const r = ramGb != null ? "RAM: " + ramGb + " GB" : "";
+    return [g, r].filter(Boolean).join(" · ") || "—";
+  }
+
+  async function refreshDataVarsList() {
+    if (!dataVarsTbody || !dataVarsEmptyRow) return;
+    try {
+      const res = await fetch("/api/data-vars");
+      const data = await res.json().catch(() => ({}));
+      const loadedModel = data.loaded_model || null;
+      const variables = data.variables || [];
+      const hasAny = loadedModel || variables.length > 0;
+
+      dataVarsEmptyRow.style.display = hasAny ? "none" : "table-row";
+      dataVarsTbody.querySelectorAll(".data-vars-data-row").forEach((el) => el.remove());
+
+      if (loadedModel) {
+        const tr = document.createElement("tr");
+        tr.className = "data-vars-data-row data-vars-model-row";
+        const memStr = formatMemory(loadedModel.memory_gpu_gb, loadedModel.memory_ram_gb);
+        tr.innerHTML =
+          "<td class=\"data-vars-td-name\" title=\"Loaded model\">" + escapeHtml(loadedModel.name || "") + "</td>" +
+          "<td class=\"data-vars-td-memory\">" + escapeHtml(memStr) + "</td>" +
+          "<td class=\"data-vars-td-action\"><button type=\"button\" class=\"data-vars-btn-delete\" data-kind=\"model\" title=\"Unload model\">×</button></td>";
+        const btn = tr.querySelector(".data-vars-btn-delete");
+        btn.addEventListener("click", async () => {
+          try {
+            const r = await fetch("/api/empty_cache", { method: "POST" });
+            if (r.ok) {
+              if (typeof session !== "undefined" && typeof updateSessionUI === "function") {
+                session = { loaded_model: null, treatment: null };
+                updateSessionUI();
+              }
+              refreshDataVarsList();
+            }
+          } catch (e) {}
+        });
+        dataVarsTbody.appendChild(tr);
+      }
+
+      variables.forEach((v) => {
+        const tr = document.createElement("tr");
+        tr.className = "data-vars-data-row data-vars-var-row";
+        const memStr = v.memory_ram_mb != null ? "RAM: ~" + v.memory_ram_mb + " MB" : "—";
+        const varName = v.name || "";
+        tr.innerHTML =
+          "<td class=\"data-vars-td-name\" title=\"" + escapeHtml(varName) + "\">" + escapeHtml(varName) + "</td>" +
+          "<td class=\"data-vars-td-memory\">" + escapeHtml(memStr) + "</td>" +
+          "<td class=\"data-vars-td-action\"><button type=\"button\" class=\"data-vars-btn-delete\" data-kind=\"var\" title=\"Remove variable\">×</button></td>";
+        const btn = tr.querySelector(".data-vars-btn-delete");
+        btn.addEventListener("click", async () => {
+          try {
+            const r = await fetch("/api/data-vars/" + encodeURIComponent(varName), { method: "DELETE" });
+            if (r.ok) refreshDataVarsList();
+          } catch (e) {}
+        });
+        dataVarsTbody.appendChild(tr);
+      });
+    } catch (err) {
+      dataVarsEmptyRow.style.display = "table-row";
+      const cell = document.getElementById("data-vars-empty");
+      if (cell) cell.textContent = "Failed to load.";
+    }
+  }
+  window.refreshDataVarsList = refreshDataVarsList;
+
+  if (btnDataVars && dataVarsDropdown) {
+    btnDataVars.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isOpen = dataVarsDropdown.classList.contains("visible");
+      if (isOpen) {
+        dataVarsDropdown.classList.remove("visible");
+        dataVarsDropdown.setAttribute("aria-hidden", "true");
+      } else {
+        refreshDataVarsList();
+        dataVarsDropdown.classList.add("visible");
+        dataVarsDropdown.setAttribute("aria-hidden", "false");
+      }
+    });
+    document.addEventListener("click", () => {
+      if (dataVarsDropdown.classList.contains("visible")) {
+        dataVarsDropdown.classList.remove("visible");
+        dataVarsDropdown.setAttribute("aria-hidden", "true");
+      }
+    });
+    dataVarsDropdown.addEventListener("click", (e) => e.stopPropagation());
+  }
+
   // ----- Create XAI: show full-screen name input, then add task -----
   const modalCreateName = document.getElementById("modal-create-task-name");
   const createNameInput = document.getElementById("create-task-name-input");
@@ -755,6 +852,48 @@
         alert("Import failed: " + err.message);
       }
       importFileInput.value = "";
+    });
+  }
+
+  // ----- Empty Cache (reset model / CUDA / session) -----
+  const btnEmptyCache = document.getElementById("btn-empty-cache");
+  if (btnEmptyCache) {
+    btnEmptyCache.addEventListener("click", async () => {
+      const warning =
+        "Warning: This will clear the loaded model, session state, conversation cache, and CUDA cache. " +
+        "You will need to load a model again to run. Continue?";
+      if (!confirm(warning)) return;
+      try {
+        const res = await fetch("/api/empty_cache", { method: "POST" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || "Empty cache failed");
+        session = { loaded_model: null, treatment: null };
+        updateSessionUI();
+      } catch (err) {
+        alert("Empty cache failed: " + err.message);
+      }
+    });
+  }
+
+  // ----- Data Management: create new Dataset Pipeline -----
+  const btnCreatePipeline = document.getElementById("btn-create-pipeline");
+  if (btnCreatePipeline) {
+    btnCreatePipeline.addEventListener("click", async () => {
+      const name = (prompt("Pipeline name:") || "").trim() || "Unnamed";
+      try {
+        const res = await fetch("/api/dataset-pipelines", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || "Create failed");
+        const id = json.id || json.pipeline?.id;
+        if (id) window.location.href = "/data/" + id;
+        else location.reload();
+      } catch (err) {
+        alert("Create pipeline failed: " + err.message);
+      }
     });
   }
 
