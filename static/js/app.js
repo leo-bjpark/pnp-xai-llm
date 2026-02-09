@@ -84,6 +84,18 @@
     inputSettingTrigger: $("#input-setting-trigger"),
     sidebarModel: $("#sidebar-model"),
     sidebarTreatment: $("#sidebar-treatment"),
+    btnCreateTreatment: $("#btn-create-treatment"),
+    createTreatmentDropdown: $("#create-treatment-dropdown"),
+    treatmentStatusIndicator: $("#treatment-status-indicator"),
+    treatmentPanel: $("#treatment-panel"),
+    treatmentPanelClose: $("#treatment-panel-close"),
+    treatmentResidualVar: $("#treatment-residual-var"),
+    treatmentLayerGrid: $("#treatment-layer-grid"),
+    treatmentAlpha: $("#treatment-alpha"),
+    treatmentDelta: $("#treatment-delta"),
+    treatmentNormalize: $("#treatment-normalize"),
+    btnTreatmentApply: $("#btn-treatment-apply"),
+    btnTreatmentClear: $("#btn-treatment-clear"),
     btnLoadModel: $("#btn-load-model"),
     btnRun: $("#btn-run"),
     resultsPlaceholder: $("#results-placeholder"),
@@ -98,6 +110,14 @@
     btnCudaExport: $("#btn-cuda-export"),
     cudaSettingEchoValue: $("#cuda-setting-echo-value"),
   };
+
+  // Debug: Treatment / Steering DOM 상태 확인
+  console.log("[treatment:init]", {
+    sidebarTreatment: el.sidebarTreatment,
+    btnCreateTreatment: el.btnCreateTreatment,
+    createTreatmentDropdown: el.createTreatmentDropdown,
+    treatmentPanel: el.treatmentPanel,
+  });
 
   // ----- Sync UI with session -----
   function updateSessionUI() {
@@ -139,6 +159,19 @@
     trigger.textContent = `${taskType}  |  ${model}  |  ${treatment}  |  ${userName}`;
   }
 
+  function updateTreatmentStatusUI() {
+    const indicator = el.treatmentStatusIndicator;
+    if (!indicator) return;
+    const cfg = parseCurrentTreatmentJSON();
+    if (cfg) {
+      indicator.textContent = "Simple Steering: Active";
+      indicator.classList.add("active");
+    } else {
+      indicator.textContent = "Simple Steering: Inactive";
+      indicator.classList.remove("active");
+    }
+  }
+
   // Load button: disabled while loading, or when selected model === loaded model
   function updateLoadButtonState() {
     if (!el.btnLoadModel) return;
@@ -160,8 +193,375 @@
     updateLoadButtonState();
     updateInputSettingTriggerText();
   });
-  el.sidebarTreatment?.addEventListener("input", () => updateInputSettingTriggerText());
-  el.sidebarTreatment?.addEventListener("change", () => updateInputSettingTriggerText());
+  el.sidebarTreatment?.addEventListener("input", () => {
+    updateInputSettingTriggerText();
+    updateTreatmentStatusUI();
+  });
+  el.sidebarTreatment?.addEventListener("change", () => {
+    updateInputSettingTriggerText();
+    updateTreatmentStatusUI();
+  });
+
+  // ----- Treatments: Simple Steering (Residual) -----
+  let treatmentSelectedKeys = new Set();
+  let treatmentDragState = null; // { startRow, startCol, isSelecting }
+
+  async function refreshResidualVarOptions() {
+    if (!el.treatmentResidualVar) return;
+    try {
+      const res = await fetch("/api/data-vars");
+      const data = await res.json().catch(() => ({}));
+      const vars = Array.isArray(data.variables) ? data.variables : [];
+      const residuals = vars.filter((v) => v.type === "residual");
+      const select = el.treatmentResidualVar;
+      const current = select.value;
+      select.innerHTML = '<option value="">— Select saved residual —</option>';
+      residuals.forEach((v) => {
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = v.name;
+        select.appendChild(opt);
+      });
+      if (current && residuals.some((v) => v.name === current)) {
+        select.value = current;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function buildTreatmentGrid(directions) {
+    const grid = el.treatmentLayerGrid;
+    if (!grid) return;
+    grid.innerHTML = "";
+    treatmentSelectedKeys = new Set(treatmentSelectedKeys); // keep existing
+
+    const keys = Object.keys(directions || {});
+    const pattern = /^(.*)\.(\d+)\.(attn_out|attn_block_out|mlp_out|mlp_block_out)$/;
+    const byLayer = new Map();
+    keys.forEach((k) => {
+      const m = pattern.exec(k);
+      if (!m) return;
+      const layerIdx = parseInt(m[2], 10);
+      const kind = m[3];
+      if (!byLayer.has(layerIdx)) byLayer.set(layerIdx, {});
+      byLayer.get(layerIdx)[kind] = k;
+    });
+    const sortedLayers = Array.from(byLayer.keys()).sort((a, b) => a - b);
+
+    const kinds = ["attn_out", "attn_block_out", "mlp_out", "mlp_block_out"];
+    const kindLabels = {
+      attn_out: "ATTN",
+      attn_block_out: "ATTN_block",
+      mlp_out: "MLP",
+      mlp_block_out: "MLP_block",
+    };
+
+    // Header row
+    grid.appendChild(createGridHeaderCell(""));
+    kinds.forEach((k) => {
+      const cell = createGridHeaderCell(kindLabels[k] || k);
+      grid.appendChild(cell);
+    });
+
+    sortedLayers.forEach((layerIdx) => {
+      const rowData = byLayer.get(layerIdx) || {};
+      // Layer label cell
+      const labelCell = document.createElement("div");
+      labelCell.className = "treatment-layer-cell layer-label";
+      labelCell.textContent = `L${layerIdx}`;
+      labelCell.dataset.row = String(layerIdx);
+      labelCell.dataset.col = "-1";
+      grid.appendChild(labelCell);
+
+      kinds.forEach((kind, colIdx) => {
+        const key = rowData[kind];
+        const cell = document.createElement("div");
+        cell.className = "treatment-layer-cell";
+        cell.dataset.row = String(layerIdx);
+        cell.dataset.col = String(colIdx);
+        if (key) {
+          cell.dataset.key = key;
+          cell.textContent = "●";
+          if (treatmentSelectedKeys.has(key)) {
+            cell.classList.add("selected");
+          }
+        } else {
+          cell.textContent = "";
+          cell.classList.add("disabled");
+        }
+        grid.appendChild(cell);
+      });
+    });
+  }
+
+  function createGridHeaderCell(text) {
+    const cell = document.createElement("div");
+    cell.className = "treatment-layer-grid-header-cell";
+    cell.textContent = text;
+    return cell;
+  }
+
+  async function refreshLayerKeysOptions() {
+    if (!el.treatmentResidualVar || !el.treatmentLayerGrid) return;
+    const name = el.treatmentResidualVar.value;
+    el.treatmentLayerGrid.innerHTML = "";
+    if (!name) {
+      treatmentSelectedKeys.clear();
+      return;
+    }
+    try {
+      const res = await fetch("/api/residual-vars/" + encodeURIComponent(name));
+      const rv = await res.json();
+      if (rv.error) return;
+      const dirs = rv.directions || {};
+      buildTreatmentGrid(dirs);
+    } catch {
+      // ignore
+    }
+  }
+
+  function parseCurrentTreatmentJSON() {
+    if (!el.sidebarTreatment) return null;
+    const raw = (el.sidebarTreatment.value || "").trim();
+    if (!raw) return null;
+    try {
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === "object" && obj.type === "simple_steering") return obj;
+    } catch {
+      // not JSON or not our type
+    }
+    return null;
+  }
+
+  function syncTreatmentUIFromField() {
+    const cfg = parseCurrentTreatmentJSON();
+    treatmentSelectedKeys.clear();
+    if (!cfg) {
+      if (el.treatmentResidualVar) el.treatmentResidualVar.value = "";
+      if (el.treatmentAlpha) el.treatmentAlpha.value = "1.0";
+      if (el.treatmentDelta) el.treatmentDelta.value = "0.0";
+      if (el.treatmentNormalize) el.treatmentNormalize.checked = true;
+      if (el.treatmentLayerGrid) el.treatmentLayerGrid.innerHTML = "";
+      return;
+    }
+    if (el.treatmentResidualVar && cfg.residual_var) {
+      el.treatmentResidualVar.value = String(cfg.residual_var);
+    }
+    if (el.treatmentAlpha && cfg.alpha != null) {
+      el.treatmentAlpha.value = String(cfg.alpha);
+    }
+    if (el.treatmentDelta && cfg.delta != null) {
+      el.treatmentDelta.value = String(cfg.delta);
+    }
+    if (el.treatmentNormalize) {
+      el.treatmentNormalize.checked = cfg.normalize !== false;
+    }
+    if (Array.isArray(cfg.layer_keys)) {
+      cfg.layer_keys.forEach((k) => treatmentSelectedKeys.add(String(k)));
+    }
+    // rebuild grid for current residual var & selection
+    refreshLayerKeysOptions();
+  }
+
+  el.treatmentResidualVar?.addEventListener("change", async () => {
+    await refreshLayerKeysOptions();
+  });
+
+  // Grid interactions: click / drag to select rectangle
+  function handleTreatmentGridMouseDown(e) {
+    const cell = e.target.closest(".treatment-layer-cell");
+    if (!cell || !cell.dataset || cell.classList.contains("layer-label") || !el.treatmentLayerGrid) return;
+    const row = parseInt(cell.dataset.row || "-1", 10);
+    const col = parseInt(cell.dataset.col || "-1", 10);
+    if (row < 0 || col < 0) return;
+    const key = cell.dataset.key;
+    const isAlreadySelected = key && treatmentSelectedKeys.has(key);
+    treatmentDragState = { startRow: row, startCol: col, isSelecting: !isAlreadySelected };
+    e.preventDefault();
+  }
+
+  function handleTreatmentGridMouseMove(e) {
+    if (!treatmentDragState || !el.treatmentLayerGrid) return;
+    const cell = e.target.closest(".treatment-layer-cell");
+    if (!cell || !cell.dataset) return;
+    const row = parseInt(cell.dataset.row || "-1", 10);
+    const col = parseInt(cell.dataset.col || "-1", 10);
+    if (row < 0 || col < 0) return;
+    const { startRow, startCol } = treatmentDragState;
+    const minRow = Math.min(startRow, row);
+    const maxRow = Math.max(startRow, row);
+    const minCol = Math.min(startCol, col);
+    const maxCol = Math.max(startCol, col);
+    el.treatmentLayerGrid.querySelectorAll(".treatment-layer-cell").forEach((c) => {
+      const r = parseInt(c.dataset.row || "-1", 10);
+      const kCol = parseInt(c.dataset.col || "-1", 10);
+      if (r >= minRow && r <= maxRow && kCol >= minCol && kCol <= maxCol && !c.classList.contains("layer-label")) {
+        c.classList.add("dragging-preview");
+      } else {
+        c.classList.remove("dragging-preview");
+      }
+    });
+  }
+
+  function handleTreatmentGridMouseUp(e) {
+    if (!el.treatmentLayerGrid) {
+      treatmentDragState = null;
+      return;
+    }
+
+    // 대상 셀 모으기: 드래그가 있었다면 preview 셀들, 아니면 클릭한 한 셀
+    const previewCells = el.treatmentLayerGrid.querySelectorAll(".treatment-layer-cell.dragging-preview");
+    let targetCells = [];
+    if (previewCells.length > 0) {
+      targetCells = Array.from(previewCells);
+    } else if (e) {
+      const single = e.target.closest(".treatment-layer-cell");
+      if (single) targetCells = [single];
+    }
+
+    // preview 클래스는 항상 제거
+    previewCells.forEach((c) => c.classList.remove("dragging-preview"));
+
+    if (!treatmentDragState || targetCells.length === 0) {
+      treatmentDragState = null;
+      return;
+    }
+
+    const { isSelecting } = treatmentDragState;
+    targetCells.forEach((c) => {
+      const key = c.dataset.key;
+      const row = parseInt(c.dataset.row || "-1", 10);
+      const col = parseInt(c.dataset.col || "-1", 10);
+      if (!key || row < 0 || col < 0 || c.classList.contains("layer-label")) return;
+      if (isSelecting) {
+        treatmentSelectedKeys.add(key);
+        c.classList.add("selected");
+      } else if (c.classList.contains("selected")) {
+        treatmentSelectedKeys.delete(key);
+        c.classList.remove("selected");
+      }
+    });
+    treatmentDragState = null;
+  }
+
+  if (el.treatmentLayerGrid) {
+    el.treatmentLayerGrid.addEventListener("mousedown", handleTreatmentGridMouseDown);
+    el.treatmentLayerGrid.addEventListener("mousemove", handleTreatmentGridMouseMove);
+    window.addEventListener("mouseup", handleTreatmentGridMouseUp);
+  }
+
+  el.btnTreatmentApply?.addEventListener("click", async () => {
+    if (!el.sidebarTreatment) return;
+    const residualVar = el.treatmentResidualVar?.value || "";
+    if (!residualVar) {
+      alert("Residual variable을 먼저 선택하세요.");
+      return;
+    }
+    const alphaStr = el.treatmentAlpha?.value ?? "1.0";
+    let alpha = 1.0;
+    try {
+      alpha = parseFloat(alphaStr);
+    } catch {
+      alpha = 1.0;
+    }
+    const deltaStr = el.treatmentDelta?.value ?? "0.0";
+    let delta = 0.0;
+    try {
+      delta = Math.max(0, Math.min(1, parseFloat(deltaStr)));
+    } catch {
+      delta = 0.0;
+    }
+    const normalize = el.treatmentNormalize ? !!el.treatmentNormalize.checked : true;
+    const layerKeys = Array.from(treatmentSelectedKeys);
+    if (!layerKeys.length) {
+      alert("최소 한 개의 layer key를 선택하세요.");
+      return;
+    }
+    const cfg = {
+      type: "simple_steering",
+      residual_var: residualVar,
+      alpha,
+      delta,
+      normalize,
+      layer_keys: layerKeys,
+    };
+    el.sidebarTreatment.value = JSON.stringify(cfg);
+    updateInputSettingTriggerText();
+    updateTreatmentStatusUI();
+    // 세션에도 즉시 반영하여 새로고침 후에도 유지되도록 한다.
+    try {
+      session = {
+        loaded_model: session.loaded_model || null,
+        treatment: el.sidebarTreatment.value,
+      };
+      await API.setSession({
+        loaded_model: session.loaded_model,
+        treatment: session.treatment,
+      });
+    } catch {
+      // 세션 저장 실패는 조용히 무시 (UI는 그대로 유지)
+    }
+    // 사용자가 업데이트 완료를 직관적으로 알 수 있도록 버튼 상태를 잠시 변경
+    if (el.btnTreatmentApply) {
+      const prevText = el.btnTreatmentApply.textContent;
+      el.btnTreatmentApply.disabled = true;
+      el.btnTreatmentApply.textContent = "Updated";
+      setTimeout(() => {
+        el.btnTreatmentApply.textContent = prevText || "Apply Steering";
+        el.btnTreatmentApply.disabled = false;
+      }, 900);
+    }
+  });
+
+  el.btnTreatmentClear?.addEventListener("click", () => {
+    if (el.sidebarTreatment) {
+      el.sidebarTreatment.value = "";
+    }
+    treatmentSelectedKeys.clear();
+    if (el.treatmentResidualVar) el.treatmentResidualVar.value = "";
+    if (el.treatmentLayerGrid) el.treatmentLayerGrid.innerHTML = "";
+    if (el.treatmentAlpha) el.treatmentAlpha.value = "1.0";
+    if (el.treatmentDelta) el.treatmentDelta.value = "0.0";
+    if (el.treatmentNormalize) el.treatmentNormalize.checked = true;
+    updateInputSettingTriggerText();
+    updateTreatmentStatusUI();
+  });
+
+  // Open Treatment panel (Simple Steering) attached to sidebar
+  async function openSimpleSteeringPanel() {
+    console.log("[treatment] openSimpleSteeringPanel called", el.treatmentPanel);
+    if (!el.treatmentPanel) return;
+    await refreshResidualVarOptions();
+    syncTreatmentUIFromField();
+    el.treatmentPanel.classList.add("visible");
+  }
+
+  // 버튼 클릭 시에도 바로 패널 열기
+  el.btnCreateTreatment?.addEventListener("click", (e) => {
+    console.log("[treatment:event] click on btnCreateTreatment", e.target);
+    e.preventDefault();
+    openSimpleSteeringPanel();
+  });
+
+  el.createTreatmentDropdown?.addEventListener("mousedown", (e) => {
+    console.log("[treatment:event] mousedown on dropdown", e.target);
+    const opt = e.target.closest(".create-treatment-option");
+    if (!opt) {
+      console.log("[treatment:event] no option found");
+      return;
+    }
+    const type = opt.dataset.treatmentType || "simple_steering";
+    console.log("[treatment:event] option type =", type);
+    if (type === "simple_steering") {
+      e.preventDefault();
+      openSimpleSteeringPanel();
+    }
+  });
+
+  el.treatmentPanelClose?.addEventListener("click", () => {
+    if (el.treatmentPanel) el.treatmentPanel.classList.remove("visible");
+  });
 
   el.btnLoadModel.addEventListener("click", async () => {
     const model = el.sidebarModel.value;
@@ -648,12 +1048,11 @@
       }
 
       if (!res.ok && res.error === "session_mismatch") {
-        if (window.PNP_finishGeneratingMessage) window.PNP_finishGeneratingMessage("Session mismatch. Please load the model.", true);
-        pendingRunAfterConfirm = { model, treatment };
-        el.modalMessage.textContent =
-          "Loaded Model + Treatment does not match the current session. Load the model with this setting?";
-        el.modalConfirm.classList.add("visible");
-        return;
+        // 세션 불일치는 팝업 없이 자동으로 세션을 동기화한 뒤 한 번 더 시도한다.
+        if (!forceLoadModel) {
+          await doRun(true);
+          return;
+        }
       }
 
       if (res.error) {
@@ -1316,6 +1715,12 @@
       const data = await API.tasksWithMeta();
       renderTaskList(data.tasks || data, data.xai_level_names || {});
       refreshSidebarVariableList();
+      await refreshResidualVarOptions();
+      syncTreatmentUIFromField();
+      updateTreatmentStatusUI();
+      if (el.treatmentPanel) {
+        el.treatmentPanel.classList.remove("visible");
+      }
       if (createLevel) {
         const option = document.querySelector(`.create-task-option[data-level="${createLevel}"]`);
         showCreateTaskModal(createLevel, "");

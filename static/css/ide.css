@@ -381,6 +381,7 @@ html, body {
   height: 100vh;
   background: var(--panel);
   border-left: 1px solid var(--border);
+  border-right: 4px solid var(--border);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
   z-index: 600;
   display: flex;
@@ -391,6 +392,24 @@ html, body {
 
 .right-panel.visible {
   transform: translateX(0);
+}
+
+/* Variant: panel attached to sidebar (immediately to the right of left sidebar) */
+.right-panel--sidebar {
+  /* In main layout: act as a flex column attached to the sidebar */
+  position: relative;
+  top: auto;
+  right: auto;
+  left: auto;
+  height: 100%;
+  max-width: none;
+  box-shadow: none;
+  transform: none;
+  display: none;
+}
+
+.right-panel--sidebar.visible {
+  display: flex;
 }
 
 .right-panel-header {
@@ -433,6 +452,154 @@ html, body {
   flex: 1;
   overflow: auto;
   padding: 16px;
+}
+
+/* Treatment editor panel */
+.treatment-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.treatment-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.treatment-editor-field {
+  flex: 1 1 140px;
+  min-width: 120px;
+}
+
+.treatment-editor-alpha {
+  flex: 0 0 120px;
+}
+
+.treatment-editor-normalize {
+  flex: 1 1 200px;
+}
+
+.treatment-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.treatment-normalize-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.treatment-layer-grid-wrap {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
+}
+
+.treatment-layer-grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.treatment-grid-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.treatment-grid-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.treatment-layer-grid {
+  display: grid;
+  grid-auto-rows: 26px;
+  grid-template-columns: 60px repeat(4, 1fr);
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.treatment-layer-grid-header-cell,
+.treatment-layer-cell {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+.treatment-layer-grid-header-cell {
+  background: var(--bg);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.treatment-layer-cell {
+  cursor: pointer;
+  user-select: none;
+  background: var(--panel);
+}
+
+.treatment-layer-cell.layer-label {
+  font-weight: 500;
+  background: var(--bg);
+  cursor: default;
+}
+
+.treatment-layer-cell.selected {
+  background: rgba(59, 130, 246, 0.25);
+  color: var(--text);
+}
+
+.treatment-layer-cell.dragging-preview {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.treatment-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Treatment panel buttons */
+#btn-treatment-clear,
+#btn-treatment-apply {
+  min-width: 110px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+#btn-treatment-clear {
+  background: var(--sidebar);
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+#btn-treatment-clear:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+#btn-treatment-apply {
+  background: var(--accent);
+  color: var(--text-secondary);
+}
+
+#btn-treatment-apply:hover {
+  opacity: 0.92;
 }
 
 /* Main layout: sidebar + content */
@@ -935,6 +1102,93 @@ a.create-task-row {
   font-size: 11px;
   color: var(--muted);
   margin-top: 4px;
+}
+
+/* Treatments sidebar row */
+.sidebar-treatment-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.btn-create-treatment {
+  width: 100%;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--sidebar);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-create-treatment:hover {
+  background: var(--hover);
+}
+
+.treatment-status {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 0px 0px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.treatment-status.active {
+  color: #16a34a;
+  border-color: #16a34a;
+}
+
+.treatment-status::before {
+  content: "● ";
+}
+
+.create-treatment-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.create-treatment-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: none;           /* 버튼과 바로 붙도록 위쪽 보더 제거 */
+  border-radius: 0 0 6px 6px; /* 아래쪽만 라운드 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.create-treatment-wrap:hover .create-treatment-dropdown {
+  display: block;
+}
+
+.create-treatment-option {
+  display: block;
+  width: 100%;
+  padding: 2px 6px;
+  font-size: 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1.4;
+  margin-top: 0px;
+  letter-spacing: 0.05em;
+}
+
+.create-treatment-option:hover {
+  background: var(--hover);
 }
 
 /* Created Task Panels list */

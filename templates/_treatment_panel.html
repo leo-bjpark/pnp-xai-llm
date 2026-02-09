@@ -1,0 +1,74 @@
+<aside class="right-panel right-panel--sidebar" id="treatment-panel" aria-label="Treatment editor">
+  <div class="right-panel-header">
+    <span class="right-panel-title">Simple Steering</span>
+    <button type="button" class="right-panel-close" id="treatment-panel-close" aria-label="Close">×</button>
+  </div>
+  <div class="right-panel-body">
+    <div class="treatment-editor">
+      <div class="treatment-editor-row">
+        <div class="treatment-editor-field">
+          <label for="treatment-residual-var" class="treatment-label">Residual variable</label>
+          <select id="treatment-residual-var" class="sidebar-select">
+            <option value="">— Select saved residual —</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="treatment-editor-row">
+        <div class="treatment-editor-field treatment-editor-alpha">
+          <label for="treatment-alpha" class="treatment-label">Alpha (strength)</label>
+          <input
+            type="number"
+            id="treatment-alpha"
+            class="sidebar-input"
+            value="1.0"
+            step="0.1"
+          />
+        </div>
+      </div>
+      <div class="treatment-editor-row">
+
+        <div class="treatment-editor-field">
+          <label for="treatment-delta" class="treatment-label">Conditional Δ (|cos sim| ≥ Δ)</label>
+          <input
+            type="number"
+            id="treatment-delta"
+            class="sidebar-input"
+            value="0.0"
+            step="0.01"
+            min="0"
+            max="1"
+          />
+        </div>
+      </div>
+
+      <div class="treatment-editor-row">
+        <div class="treatment-editor-field treatment-editor-normalize">
+          <label class="treatment-label">Normalization</label>
+          <label class="treatment-normalize-check">
+            <input type="checkbox" id="treatment-normalize" checked />
+            <span>Preserve residual norm (recommended)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="treatment-layer-grid-wrap">
+        <div class="treatment-layer-grid-header">
+          <div class="treatment-grid-title">Layer positions</div>
+          <div class="treatment-grid-hint">Drag to select multiple positions</div>
+        </div>
+        <div class="treatment-layer-grid" id="treatment-layer-grid"></div>
+      </div>
+
+      <div class="treatment-editor-actions">
+        <button type="button" class="btn-secondary" id="btn-treatment-clear">
+          Clear
+        </button>
+        <button type="button" class="btn-primary" id="btn-treatment-apply">
+          Apply Steering
+        </button>
+      </div>
+    </div>
+  </div>
+</aside>
+

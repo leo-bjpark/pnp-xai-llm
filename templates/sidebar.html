@@ -88,7 +88,31 @@
       <span>Treatments</span>
     </div>
     {% if is_index %}<div class="sidebar-section-body">{% endif %}
-    <input type="text" id="sidebar-treatment" class="sidebar-input" placeholder="Ex) LoRA, Deactivate Features" value="{{ task.treatment if task else '' }}" />
+    <div class="sidebar-treatment-header-row">
+      <div class="create-treatment-wrap">
+        <button
+          type="button"
+          class="btn-create-treatment"
+          id="btn-create-treatment"
+          title="Hover to choose Steering type"
+        >
+          Steering
+        </button>
+        <div class="create-treatment-dropdown" id="create-treatment-dropdown">
+          <button
+            type="button"
+            class="create-treatment-option"
+            data-treatment-type="simple_steering"
+          >
+            Simple Steering (Residual)
+          </button>
+        </div>
+      </div>
+      <span class="treatment-status" id="treatment-status-indicator" title="Steering status">
+        Simple Steering: Inactive
+      </span>
+    </div>
+    <input type="hidden" id="sidebar-treatment" />
     {% if is_index %}</div>{% endif %}
   </div>
 
@@ -156,3 +180,6 @@
     {% if is_index %}</div>{% endif %}
   </div>
 </aside>
+
+{# Treatment editor panel: rendered next to sidebar inside main-layout #}
+{% include '_treatment_panel.html' %}

@@ -36,6 +36,9 @@ XAI_LEVEL_NAMES:
   - "2.0.1": "Residual Concept Detection"
   - "2.0.2": "Layer Direction Similarity Analysis"
 
+TREATMENTS:
+  - "Simple Steering"
+
 
 DATASETS:
   - jailbreak:

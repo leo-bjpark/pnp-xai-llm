@@ -62,39 +62,39 @@ except ImportError:
             return _MODEL_ALIASES.get(model_key, model_key)
 
         def _load_base_model(base_model_name: str):
+            """
+            Load model on CUDA only.
+
+            - Requires torch.cuda.is_available() to be True.
+            - Loads weights directly on GPU using device_map="cuda"
+              to avoid meta-tensor -> .to("cuda") 문제.
+            """
+            if not torch.cuda.is_available():
+                raise RuntimeError("CUDA is not available. GPU-only loading is requested but no GPU is visible.")
+
             tokenizer = AutoTokenizer.from_pretrained(base_model_name)
             tokenizer.padding_side = "left"
             tokenizer.pad_token = tokenizer.eos_token
-            model = None
+
             try:
+                # Load directly on CUDA to avoid meta tensor copy issues.
                 model = AutoModelForCausalLM.from_pretrained(
                     base_model_name,
                     torch_dtype=torch.bfloat16,
-                    device_map="auto",
+                    device_map="cuda",
                     output_attentions=True,
-                    low_cpu_mem_usage=True,
                 )
                 model.eval()
+
+                # Sanity check: one forward pass with attentions
                 with torch.inference_mode():
-                    enc = tokenizer("hello", return_tensors="pt")
-                    device = next(model.parameters()).device
-                    if device.type == "meta":
-                        raise RuntimeError("meta device")
-                    out = model(**enc.to(device), output_attentions=True)
+                    enc = tokenizer("hello", return_tensors="pt").to("cuda")
+                    out = model(**enc, output_attentions=True)
                 if not out.attentions or any(a is None for a in out.attentions):
-                    raise RuntimeError("attentions None")
+                    raise RuntimeError("Model attentions are missing or None")
             except Exception as e:
-                err_msg = str(e).lower()
-                if "meta" in err_msg or "cannot copy" in err_msg or model is None:
-                    print(f"Warning: Falling back to CPU load (device_map=cpu) due to: {e}")
-                model = AutoModelForCausalLM.from_pretrained(
-                    base_model_name,
-                    torch_dtype=torch.bfloat16,
-                    device_map="cpu",
-                    output_attentions=True,
-                    low_cpu_mem_usage=False,
-                )
-                model.eval()
+                raise RuntimeError(f"Failed to load model on GPU (cuda): {e}") from e
+
             return model, tokenizer
 
         @lru_cache(maxsize=2)
@@ -166,7 +166,16 @@ def get_available_models() -> List[str]:
 
 
 def load_model(model_key: str) -> None:
-    """Load model into memory (warm cache)."""
+    """
+    Load model into GPU memory for the current session.
+
+    Policy:
+    - Before loading a new model, clear all previously cached models and CUDA memory.
+      This ensures that only one HF model is resident on the GPU at a time.
+    """
+    # Drop any previously loaded models from the LRU cache and free CUDA memory
+    clear_model_cache()
+    # Load requested model (this will place it on GPU via _load_base_model)
     load_llm(model_key)
 
 

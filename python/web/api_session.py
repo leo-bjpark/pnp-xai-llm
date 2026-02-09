@@ -51,6 +51,14 @@ def api_load_model():
     try:
         load_model(model_key)
         cache_store.set_session(model_key, treatment)
+        # Apply Simple Steering treatment hooks, if treatment is a JSON config.
+        try:
+            from python.treatments.simple_steering import apply_simple_steering_from_string
+
+            apply_simple_steering_from_string(model_key, treatment)
+        except Exception:
+            # Treatment errors should not break model loading.
+            pass
         return jsonify({"status": "ok", "model": model_key})
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
