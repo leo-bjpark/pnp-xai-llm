@@ -1,15 +1,3 @@
 THEME_OVERRIDES:
   light: {}
   dark: {}
-THEME_DEFAULTS:
-  light: {}
-  dark:
-    --bg: '#2557d4'
-    --panel: '#0e1628'
-    --sidebar: '#000000'
-    --text: '#F5F7FA'
-    --muted: '#8B90A0'
-    --border: '#1E2233'
-    --brand: '#1e299c'
-    --accent: '#06c300'
-    --hover: '#1A1E30'

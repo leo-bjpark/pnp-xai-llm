@@ -18,14 +18,14 @@
     {
       "id": "task_20260211_145715_0",
       "title": "2026-02-11 14:57",
-      "model": "google/gemma-3-12b-it",
+      "model": "google/gemma-3-4b-it",
       "treatment": "",
       "result": {
         "ok": true,
-        "generated_text": "The 12th Annual North American Division (NAD) Pathfinder Camporee, held at the National Trail Campground in Mt. Gilead, Ohio, from July 26-30, 2023, was a resounding success, drawing over 40,000 Pathfinders and leaders from across the North American Division. The event, themed \"Equipped for Eternity,\" focused on equipping young people with spiritual tools and practical skills for a life of service and discipleship.\n\nHere's a recap of the highlights:\n\n*   **Record Attendance:** The camporee saw the largest attendance in its history, with Pathfinders and leaders representing various conferences and unions across North America.\n*   **Theme and Activities:** The \"Equipped for Eternity\" theme was woven throughout the week's activities, including devotionals, workshops, and challenges. Pathfinders participated in skill-building activities like first aid, rope work, and wilderness survival, alongside spiritual growth sessions.\n*   **Main Events:**  The opening ceremony featured inspiring speakers and performances. The Friendship Feast was a vibrant celebration of diversity and fellowship. The grand finale included a spectacular light show and a closing message emphasizing the camporee’s theme.\n*   **Service Opportunities",
-        "input_string": "",
+        "generated_text": "KAIST-SAIL (Korea Advanced Institute of Science and Technology - Smart Autonomous Intelligent Logistics) is a research center established at KAIST (Korea Advanced Institute of Science and Technology) in 2018. It’s a collaborative effort between KAIST and Hyundai Motor Group, focusing on developing cutting-edge technologies for autonomous logistics and intelligent transportation.\n\nHere's a breakdown of what KAIST-SAIL does:\n\n**Core Focus Areas:**\n\n* **Autonomous Mobile Robots (AMRs):**  KAIST-SAIL is a global leader in developing and deploying AMRs – robots that can navigate and operate within dynamic environments, unlike traditional AGVs (Automated Guided Vehicles) that require predefined paths.\n* **Digital Twin Technology:** They leverage digital twins – virtual replicas of physical assets – to simulate, analyze, and optimize logistics operations. This allows for testing and refinement of autonomous systems in a safe and controlled environment.\n* **AI and Machine Learning:**  KAIST-SAIL heavily relies on AI and machine learning algorithms to enable robots to perceive their surroundings, make decisions, and adapt to changing conditions.\n* **Logistics Automation:** They're exploring various aspects of logistics automation, including warehousing, last-mile delivery, and supply",
+        "input_string": "What is KAIST-SAIL?",
         "max_new_tokens": 256,
-        "model": "google/gemma-3-12b-it",
+        "model": "google/gemma-3-4b-it",
         "status": "ok",
         "temperature": 0.7,
         "top_k": 50,

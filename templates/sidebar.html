@@ -13,6 +13,7 @@
         <div class="create-task-grid" id="create-task-picker-list">
           {% for level_num in [0, 1, 2] %}
           <div class="create-task-column" data-group="{{ level_num }}">
+            <div class="create-task-column-header">Level {{ level_num }}</div>
             <div class="create-task-column-list">
               {% for level, name in (xai_level_grouped or {}).get(level_num, []) %}
               <button
