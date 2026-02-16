@@ -36,6 +36,33 @@
     </div>
   </div>
 
+  {# Analyzer search (e.g., Layer Residual PCA) #}
+  <div class="sidebar-section">
+    <div class="create-task-wrap">
+      <input
+        type="text"
+        id="search-analyzer-input"
+        class="sidebar-input"
+        placeholder="Search Analyzer"
+        autocomplete="off"
+      />
+      <div class="sidebar-picker analyzer-picker" id="analyzer-picker" aria-hidden="true">
+        <div class="sidebar-picker-list" id="analyzer-picker-list">
+          {% for analyzer_name in (analyzers or []) %}
+          <button
+            type="button"
+            class="sidebar-picker-item analyzer-option"
+            data-name="{{ analyzer_name }}"
+            data-href="/analyzer/layer_residual_pca"
+          >
+            <span class="sidebar-picker-name">{{ analyzer_name }}</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="sidebar-section {% if is_index %}{% endif %}" {% if is_index %}data-section="loaded-model"{% endif %}>
     <div class="sidebar-section-title sidebar-section-title-loaded">
       {% if is_index %}<span class="sidebar-section-chevron" aria-hidden="true">▼</span>{% endif %}

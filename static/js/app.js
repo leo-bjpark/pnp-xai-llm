@@ -57,6 +57,8 @@
       }).then((r) => r.json()),
   };
 
+  window.PNP_API = API;
+
   // State
   let session = { loaded_model: null, treatment: null };
   let loadInProgress = false;
@@ -80,6 +82,9 @@
     createTaskInput: $("#create-task-input"),
     createTaskPicker: $("#create-task-picker"),
     createTaskPickerList: $("#create-task-picker-list"),
+    searchAnalyzerInput: $("#search-analyzer-input"),
+    analyzerPicker: $("#analyzer-picker"),
+    analyzerPickerList: $("#analyzer-picker-list"),
     loadedModelDisplay: $("#loaded-model-display"),
     loadedModelText: $("#loaded-model-text"),
     taskPanelList: $("#task-panel-list"),
@@ -988,6 +993,54 @@
     toggleCreateTaskPicker(false);
   });
 
+  // ----- Search Analyzer (Layer Residual PCA etc.) -----
+  function toggleAnalyzerPicker(show) {
+    if (!el.analyzerPicker) return;
+    el.analyzerPicker.classList.toggle("visible", !!show);
+    el.analyzerPicker.setAttribute("aria-hidden", show ? "false" : "true");
+  }
+
+  function filterAnalyzerPicker(query) {
+    if (!el.analyzerPickerList) return;
+    const q = (query || "").toLowerCase().trim();
+    el.analyzerPickerList.querySelectorAll(".analyzer-option").forEach((btn) => {
+      const name = (btn.dataset.name || "").toLowerCase();
+      const match = !q || name.includes(q);
+      btn.style.display = match ? "" : "none";
+    });
+  }
+
+  if (el.searchAnalyzerInput) {
+    el.searchAnalyzerInput.addEventListener("focus", () => {
+      toggleAnalyzerPicker(true);
+      filterAnalyzerPicker(el.searchAnalyzerInput.value);
+    });
+    el.searchAnalyzerInput.addEventListener("input", () => {
+      toggleAnalyzerPicker(true);
+      filterAnalyzerPicker(el.searchAnalyzerInput.value);
+    });
+  }
+
+  if (el.analyzerPickerList) {
+    el.analyzerPickerList.addEventListener("click", (e) => {
+      const btn = e.target.closest(".analyzer-option");
+      if (!btn) return;
+      e.preventDefault();
+      const name = btn.dataset.name || "";
+      const href = btn.dataset.href || "";
+      if (el.searchAnalyzerInput) el.searchAnalyzerInput.value = name || "";
+      toggleAnalyzerPicker(false);
+      if (href) {
+        window.location.href = href;
+      }
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#search-analyzer-input") || e.target.closest("#analyzer-picker")) return;
+    toggleAnalyzerPicker(false);
+  });
+
   // Run button: show Play+RUN or Square+Stop
   function setRunButtonState(isRunning) {
     if (!el.btnRun) return;
@@ -1260,6 +1313,10 @@
       const isCompletionResult = res && "generated_text" in res;
       const isAttributionResult = res && Array.isArray(res.input_tokens) && Array.isArray(res.token_scores);
       const isResidualConceptResult = res && res.directions && typeof res.directions === "object";
+      const isAdversarialResult = res && Array.isArray(res.adversarial_results);
+      if (isAdversarialResult && typeof window.PNP_applyAdversarialResults === "function") {
+        window.PNP_applyAdversarialResults(res);
+      }
 
       if (isConversationResult && window.PNP_finishGeneratingMessage) {
         window.PNP_finishGeneratingMessage(res.generated_text != null ? res.generated_text : "");
@@ -1307,6 +1364,9 @@
       function renderResultContent() {
         if (isAttributionResult && window.PNP_renderAttributionResultHTML) {
           return window.PNP_renderAttributionResultHTML(res, escapeHtml);
+        }
+        if (isAdversarialResult && window.PNP_renderAdversarialResultHTML) {
+          return window.PNP_renderAdversarialResultHTML(res, escapeHtml);
         }
         if (isResidualConceptResult) {
           window.PNP_LAST_RESIDUAL_RESULT = res;

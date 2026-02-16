@@ -67,6 +67,17 @@ def api_run():
     system_instruction = (input_setting.get("system_instruction") or "").strip()
     attribution_method = (input_setting.get("attribution_method") or "").strip()
 
+    if current_model and input_setting.get("adversarial_rows") is not None:
+        from python.xai_handlers import run_adversarial_text_generation
+
+        result, status = run_adversarial_text_generation(
+            model=model,
+            treatment=treatment,
+            current_model=current_model,
+            input_setting=input_setting,
+        )
+        return jsonify(result), status
+
     if "input_string" in input_setting and current_model:
         if attribution_method:
             from python.xai_handlers import run_attribution
@@ -207,4 +218,3 @@ def api_run_residual_concept_stream():
 def api_conversation_clear():
     """No-op: conversation cache is managed by JS."""
     return jsonify({"status": "ok"})
-

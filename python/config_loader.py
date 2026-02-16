@@ -113,3 +113,15 @@ def get_dataset_list() -> List[str]:
     for _, items in groups.items():
         flat.extend(items)
     return flat
+
+
+def get_analyzer_list() -> List[str]:
+    """Return list of analyzer names from config.yaml ANALYZER section."""
+    if not CONFIG_PATH.exists():
+        return []
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    raw = data.get("ANALYZER") or []
+    if isinstance(raw, list):
+        return [str(x).strip() for x in raw if str(x).strip()]
+    return []

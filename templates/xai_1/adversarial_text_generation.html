@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ task.title }} - PnP-XAI-LLM</title>
+  <script>document.documentElement.dataset.theme=localStorage.getItem('pnp-xai-theme')||'light';</script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ide.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/xai_1/xai_1.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/xai_1/adversarial_text_generation.css') }}" />
+</head>
+<body>
+  {% set export_as_link = true %}
+  {% include 'header.html' with context %}
+
+  <div class="main-layout">
+    {% set is_index = false %}
+    {% include 'sidebar.html' with context %}
+
+    <main class="content-area">
+      <div class="content-toolbar">
+        <button type="button" class="btn-run" id="btn-run">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          RUN
+        </button>
+        <span id="generation-status" class="generation-status" aria-live="polite"></span>
+        <button type="button" class="input-setting-trigger has-setting" id="input-setting-trigger" title="Task, Model, Treatment, Name" data-task-type="Adversarial Text Generation" data-task-name="{{ task.name or task.title or '' }}" data-task-model="{{ task.model or '' }}" data-task-treatment="{{ task.treatment or '' }}">
+          Adversarial Text Generation | {{ task.model or '—' }} | {{ task.treatment or 'None' }} | {{ task.name or task.title or '—' }}
+        </button>
+      </div>
+
+      <div class="input-setting-panel visible" id="input-setting-panel">
+        <div class="input-setting-body" id="input-setting-body">
+          <p class="input-setting-hint">
+            Discrete adversarial prefix search. Supply one or more rows (input, desired response, optional seed text) and RUN discovers
+            short prefix strings that steer the model toward each target answer.
+          </p>
+          <div class="adversarial-settings-grid">
+            <div class="input-setting-cell">
+              <label for="input-adversarial-iterations">Iterations</label>
+              <input type="number" id="input-adversarial-iterations" name="iterations" data-task-input="iterations" min="1" max="64" step="1" value="{{ (task.result or {}).get('iterations', 6) }}" />
+            </div>
+            <div class="input-setting-cell">
+              <label for="input-adversarial-seed-hint">Seed text</label>
+              <div class="input-setting-hint-text">Optional seed text can be provided per row.</div>
+            </div>
+          </div>
+          <input type="hidden" id="input-adversarial-rows" name="adversarial_rows" data-task-input="adversarial_rows" value='{{ ((task.result or {}).get("adversarial_rows") or []) | tojson }}' />
+
+          <div class="adversarial-rows-wrapper">
+            <div class="adversarial-rows-header">
+              <div>
+                <h3>Multi-target roster</h3>
+                <p class="input-setting-hint">Define the prompts you want to steer (e.g. "오늘 메뉴는 뭐로할까?") and the desired reply. Seeds override the prefix search.</p>
+              </div>
+              <div class="adversarial-actions">
+                <button type="button" id="adversarial-add-row">Add row</button>
+              </div>
+            </div>
+            <div class="adversarial-table">
+              <div class="adversarial-table-header">
+                <span>Input</span>
+                <span>Desired output</span>
+                <span>Seed text</span>
+                <span>Result</span>
+                <span>Actions</span>
+              </div>
+            <div class="adversarial-table-body adversarial-scroll" id="adversarial-rows-body"></div>
+          </div>
+          </div>
+
+          <template id="adversarial-row-template">
+            <div class="adversarial-row" data-row-id="">
+              <div>
+                <textarea data-adversarial-input rows="1" placeholder="Input prompt (e.g. 오늘 메뉴는 뭐로할까?)"></textarea>
+              </div>
+              <div>
+                <input type="text" data-adversarial-target placeholder="Desired reply (e.g. 자장면)" />
+              </div>
+              <div>
+              <input type="text" data-adversarial-seed placeholder="Optional seed text" />
+              </div>
+              <div>
+                <div class="adversarial-row-result adversarial-row-result-empty" data-adversarial-result>Waiting for RUN</div>
+              </div>
+              <div class="adversarial-row-actions">
+                <button type="button" data-adversarial-copy>Copy Input</button>
+                <button type="button" data-adversarial-remove>Delete</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <section class="adversarial-test-panel" id="adversarial-test-panel">
+        <div class="adversarial-test-toolbar">
+          <div class="adversarial-test-toolbar-actions">
+            <button type="button" id="adversarial-add-chat">+ Add</button>
+            <button type="button" id="adversarial-test-run">RUN</button>
+          </div>
+          <div class="adversarial-test-params">
+            <label>
+              Max output length
+              <input type="number" id="adversarial-max-tokens" min="1" max="4096" step="1" value="256" />
+            </label>
+            <label>
+              Top-p
+              <input type="number" id="adversarial-top-p" min="0" max="1" step="0.01" value="1.0" />
+            </label>
+            <label>
+              Temperature
+              <input type="number" id="adversarial-temperature" min="0" max="2" step="0.05" value="0.7" />
+            </label>
+          </div>
+          <span class="generation-status" id="adversarial-test-status" aria-live="polite"></span>
+        </div>
+        <div class="adversarial-test-rows adversarial-scroll" id="adversarial-test-rows"></div>
+        <template id="adversarial-test-row-template">
+          <div class="adversarial-test-row">
+            <div class="adversarial-test-row-header">
+              <span class="adversarial-test-row-title"></span>
+              <button type="button" class="adversarial-test-row-remove">Delete</button>
+            </div>
+            <div class="adversarial-test-row-body">
+              <textarea class="adversarial-test-row-input" rows="2" placeholder="User message"></textarea>
+              <div class="adversarial-test-row-output">
+                <span class="adversarial-test-row-output-label">Output</span>
+                <pre class="adversarial-test-row-output-text" data-adversarial-output>대기 중</pre>
+              </div>
+            </div>
+          </div>
+        </template>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="modal-confirm-load">
+    <div class="modal-dialog">
+      <h3>Confirm Model Load</h3>
+      <p id="modal-message">Loaded Model + Treatment does not match the current session. Load the model with this setting?</p>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn-cancel" id="modal-cancel">Cancel</button>
+        <button type="button" class="modal-btn-confirm" id="modal-confirm">Load</button>
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/working_memory.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/memory_panels.js') }}"></script>
+  <script>
+    window.PNP_CURRENT_TASK_ID = {{ task.id | tojson }};
+    window.PNP_CURRENT_TASK_LEVEL = {{ task.xai_level | tojson }};
+    window.PNP_ADVERSARIAL_PRESET_ROWS = {{ ((task.result or {}).get("adversarial_rows") or []) | tojson }};
+    window.PNP_ADVERSARIAL_PAST_RESULTS = {{ ((task.result or {}).get("adversarial_results") or []) | tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/xai_1/adversrail_text_generation.js') }}"></script>
+</body>
+</html>

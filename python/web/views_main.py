@@ -1,6 +1,11 @@
 from flask import Blueprint, redirect, render_template
 
-from python.config_loader import get_dataset_groups, get_xai_level_names, get_xai_level_names_grouped
+from python.config_loader import (
+    get_analyzer_list,
+    get_dataset_groups,
+    get_xai_level_names,
+    get_xai_level_names_grouped,
+)
 from python.dataset_pipeline_store import get_pipeline_by_id, get_pipelines
 from python.model_load import get_config_models, get_config_models_grouped
 from python.session_store import get_task_by_id, get_tasks
@@ -33,6 +38,7 @@ def index():
     xai_level_grouped = get_xai_level_names_grouped()
     tasks = get_tasks(xai_level_names)
     dataset_pipelines = get_pipelines()
+    analyzers = get_analyzer_list()
     return render_template(
         "index.html",
         models=models,
@@ -42,6 +48,7 @@ def index():
         xai_level_grouped=xai_level_grouped,
         dataset_pipelines=dataset_pipelines,
         dataset_categories=_dataset_category_map(),
+        analyzers=analyzers,
     )
 
 
@@ -52,6 +59,7 @@ def _task_template(level_key: str) -> str:
         "Conversation": "xai_0/conversation.html",
         "Response Attribution": "xai_1/response_attribution.html",
         "Positive & Negative Attribution": "xai_1/response_attribution.html",
+        "Adversarial Text Generation": "xai_1/adversarial_text_generation.html",
         "Residual Concept Detection": "xai_2/residual_concept_detection.html",
         "Layer Direction Similarity Analysis": "xai_2/layer_direction_similarity.html",
         "Brain Concept Visualization": "xai_2/brain_concept.html",
@@ -80,6 +88,7 @@ def _render_task(task_id: str, level_key: str):
     xai_level_names = get_xai_level_names()
     tasks = get_tasks(xai_level_names)
     dataset_pipelines = get_pipelines()
+    analyzers = get_analyzer_list()
     template = _task_template(level_key)
     return render_template(
         template,
@@ -91,6 +100,7 @@ def _render_task(task_id: str, level_key: str):
         xai_level_grouped=get_xai_level_names_grouped(),
         dataset_pipelines=dataset_pipelines,
         dataset_categories=_dataset_category_map(),
+        analyzers=analyzers,
     )
 
 
@@ -114,6 +124,29 @@ def task_view(task_id):
         )
     level_key = task.get("xai_level", "")
     return _render_task(task_id, level_key)
+
+
+@main_bp.get("/analyzer/layer_residual_pca")
+def analyzer_layer_residual_pca():
+    """Standalone analyzer view for Layer Residual PCA (no task object)."""
+    models = get_config_models()
+    models_grouped = get_config_models_grouped()
+    xai_level_names = get_xai_level_names()
+    xai_level_grouped = get_xai_level_names_grouped()
+    tasks = get_tasks(xai_level_names)
+    dataset_pipelines = get_pipelines()
+    analyzers = get_analyzer_list()
+    return render_template(
+        "analyzer/layer_residual_pca.html",
+        models=models,
+        models_grouped=models_grouped,
+        tasks=tasks,
+        xai_level_names=xai_level_names,
+        xai_level_grouped=xai_level_grouped,
+        dataset_pipelines=dataset_pipelines,
+        dataset_categories=_dataset_category_map(),
+        analyzers=analyzers,
+    )
 
 
 @main_bp.get("/data")

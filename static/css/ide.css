@@ -983,6 +983,10 @@ html, body {
   position: relative;
 }
 
+.analyzer-picker {
+  max-width: 420px;
+}
+
 /* Generic sidebar dropdown picker (XAI level / model) */
 .sidebar-picker {
   position: absolute;
@@ -3253,3 +3257,5 @@ a.create-task-row {
   background: var(--border);
   border-radius: 4px;
 }
+
+

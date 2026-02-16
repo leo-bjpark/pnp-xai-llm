@@ -34,6 +34,7 @@ XAI_LEVEL_NAMES:
   - "LEVEL_1":
     - "Response Attribution"
     - "Positive & Negative Attribution"
+    - "Adversarial Text Generation"
   - "LEVEL_2":
     - "Layer Direction Similarity Analysis"
     - "Brain Concept Visualization"
@@ -42,6 +43,10 @@ XAI_LEVEL_NAMES:
 
 TREATMENTS:
   - "Simple Steering"
+
+
+ANALYZER:
+  - "Layer Residual PCA"
 
 
 DATASETS:

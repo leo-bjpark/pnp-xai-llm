@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Layer Residual PCA - PnP-XAI-LLM</title>
+  <script>document.documentElement.dataset.theme=localStorage.getItem('pnp-xai-theme')||'light';</script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ide.css') }}" />
+  <style>
+    .residual-pca-layout { padding: 20px; max-width: 100%; display: flex; flex-direction: column; gap: 20px; }
+    .residual-pca-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .residual-pca-toolbar select { min-width: 260px; padding: 6px 10px; font-size: 12px; }
+    .residual-pca-toolbar .btn-analyze { padding: 6px 14px; background: var(--accent); color: var(--accent-fg, #fff); border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .residual-pca-toolbar .btn-analyze:hover:not(:disabled) { opacity: 0.9; }
+    .residual-pca-toolbar .btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; }
+    .residual-pca-status { font-size: 12px; color: var(--muted); }
+    .residual-pca-summary { font-size: 13px; color: var(--text); }
+    .residual-pca-summary strong { font-weight: 600; }
+    .residual-pca-list { max-height: 360px; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; }
+    .residual-pca-list table { width: 100%; border-collapse: collapse; }
+    .residual-pca-list th, .residual-pca-list td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+    .residual-pca-list th:first-child, .residual-pca-list td:first-child { text-align: left; }
+    .residual-pca-list tr:last-child th, .residual-pca-list tr:last-child td { border-bottom: none; }
+    .residual-pca-sparkline { width: 100%; height: 80px; }
+  </style>
+</head>
+<body>
+  {% set header_title = 'PnP-XAI-LLM — Layer Residual PCA' %}
+  {% set export_as_link = true %}
+  {% include 'header.html' with context %}
+
+  <div class="main-layout">
+    {% set is_index = false %}
+    {% include 'sidebar.html' with context %}
+
+    <main class="content-area">
+      <div class="content-toolbar">
+        <button type="button" class="input-setting-trigger has-setting" id="input-setting-trigger" title="Analyzer" data-task-type="Layer Residual PCA" data-task-name="Layer Residual PCA" data-task-model="" data-task-treatment="">
+          Layer Residual PCA — analyzer over residual variables
+        </button>
+      </div>
+
+      <div class="results-area">
+        <div class="results-content visible" id="results-content">
+          <div class="residual-pca-layout">
+            <div class="residual-pca-toolbar">
+              <select id="residual-pca-var-select">
+                <option value="">— Select residual variable —</option>
+              </select>
+              <button type="button" class="btn-analyze" id="residual-pca-btn-analyze">Run PCA</button>
+              <span id="residual-pca-status" class="residual-pca-status"></span>
+            </div>
+            <div id="residual-pca-summary" class="residual-pca-summary"></div>
+            <svg id="residual-pca-sparkline" class="residual-pca-sparkline" viewBox="0 0 400 80" aria-label="Singular values scree plot"></svg>
+            <div class="residual-pca-list" id="residual-pca-list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/working_memory.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/memory_panels.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/analyzer/layer_wise_pca.js') }}"></script>
+</body>
+</html>
+

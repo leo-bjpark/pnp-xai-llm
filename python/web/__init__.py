@@ -32,6 +32,7 @@ def create_app() -> Flask:
     from .api_residual import residual_bp
     from .api_brain import brain_bp
     from .api_theme import theme_bp
+    from .api_analyzer import analyzer_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(tasks_bp)
@@ -43,5 +44,6 @@ def create_app() -> Flask:
     app.register_blueprint(residual_bp)
     app.register_blueprint(brain_bp)
     app.register_blueprint(theme_bp)
+    app.register_blueprint(analyzer_bp)
 
     return app
